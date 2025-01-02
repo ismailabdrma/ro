@@ -1,62 +1,218 @@
-<!-- templates/result.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pipeline Optimization Results</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
             padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
         }
-        .results {
-            white-space: pre-line;
-            background-color: #f5f5f5;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+
+        .map-section {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 100%;
+            overflow: hidden;
         }
-        .visualization {
-            margin: 20px 0;
+
+        .details-section {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 100%;
+            overflow-y: auto;
         }
-        .map-container {
-            height: 600px;
-            margin: 20px 0;
-        }
-        .button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
+
+        .network-map {
+            width: 100%;
+            flex-grow: 1;
             border-radius: 4px;
+            margin-bottom: 10px;
+            min-height: 400px;
+        }
+
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            margin-top: auto;
+        }
+
+        .legend-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
             display: inline-block;
         }
-        img {
-            max-width: 100%;
+
+        .flow-details {
+            margin-bottom: 20px;
+        }
+
+        .max-flow {
+            font-size: 24px;
+            color: #2196F3;
+            margin: 10px 0;
+        }
+
+        .path-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .path-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .graph-section {
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .graph-title {
+            padding: 10px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+        }
+
+        .graph-container {
+            padding: 10px;
+        }
+
+        .graph-container img {
+            width: 100%;
             height: auto;
+            border-radius: 4px;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 12px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .calculate-btn:hover {
+            background: #1976D2;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+
+        h3 {
+            margin: 10px 0;
+            color: #444;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .map-section, .details-section {
+                height: auto;
+            }
+
+            .network-map {
+                height: 500px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Pipeline Optimization Results</h1>
-    
-    <div class="results">
-        {{ message }}
-    </div>
+    <div class="container">
+        <div class="map-section">
+            <h2>Network Map</h2>
+            <div class="network-map">
+                {{ map|safe }}
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #FF0000;"></span>
+                    Path 1: {{ paths[0]|join(" → ") }}
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #00FF00;"></span>
+                    Path 2: {{ paths[1]|join(" → ") }}
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #0000FF;"></span>
+                    Path 3: {{ paths[2]|join(" → ") }}
+                </div>
+                <div class="legend-item">
+                    <span style="color: red;">●</span> Source/Mine
+                </div>
+                <div class="legend-item">
+                    <span style="color: green;">●</span> Destination
+                </div>
+                <div class="legend-item">
+                    <span style="color: blue;">●</span> Industrial City
+                </div>
+            </div>
+        </div>
+        
+        <div class="details-section">
+            <div class="flow-details">
+                <h2>Flow Details</h2>
+                <div class="max-flow">
+                    Maximum Flow: {{ max_flow }} units
+                </div>
+                <h3>Paths Used:</h3>
+                <ul class="path-list">
+                    {% for path in paths %}
+                    <li class="path-item">
+                        {{ path|join(" → ") }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-    <div class="visualization">
-        <h2>Network Map</h2>
-        <div class="map-container">
-            {% include "map.html" %}
+            <div class="graph-section">
+                <div class="graph-title">Network Graph</div>
+                <div class="graph-container">
+                    <img src="{{ url_for('static', filename=graph_image_path) }}" alt="Network Graph">
+                </div>
+            </div>
+
+            <form method="post">
+                <button type="submit" class="calculate-btn">Calculate New Flow</button>
+            </form>
         </div>
     </div>
-
-    <div class="visualization">
-        <h2>Network Graph</h2>
-        <img src="{{ url_for('static', filename=graph_image_path) }}" alt="Network Graph">
-    </div>
-
-    <a href="/" class="button">Calculate New Route</a>
 </body>
 </html>
