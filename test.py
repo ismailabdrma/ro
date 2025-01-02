@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -5,11 +7,13 @@ from flask import Flask, render_template, request
 import folium
 import networkx as nx
 
-
+# Create necessary directories for templates and static files
+Path("templates").mkdir(exist_ok=True)
+Path("static").mkdir(exist_ok=True)
 
 app = Flask(__name__)
 
-# List of Moroccan cities with their coordinates
+# Coordinates for cities
 city_coordinates = {
     "Casablanca": (33.5731, -7.5898),
     "Rabat": (34.0209, -6.8416),
@@ -24,164 +28,180 @@ city_coordinates = {
     "El Jadida": (33.2561, -8.5089),
     "Beni Mellal": (32.3394, -6.3498),
     "Khouribga": (32.8809, -6.9063),
-    "Laayoune": (27.1483, -13.1995),
-    "Nador": (35.1682, -2.9335),
-    "Errachidia": (31.9314, -4.4239),
-    "Ouarzazate": (30.9335, -6.937),
-    "Guelmim": (28.987, -10.0572),
-    "Essaouira": (31.506327, -9.754354),
-    "Jorf Lasfar": (33.1069, -8.6375),
-    "Youssoufia": (32.2469, -8.5289),
-    "Benguerir": (32.2360, -7.9506),
     "Kenitra": (34.2610, -6.5802),
-    "Al Hoceima": (35.2516, -3.9372),
-    "Berkane": (34.9200, -2.3200),
-    "Taza": (34.2100, -4.0100),
-    "Tiznit": (29.6974, -9.7300),
-    "Tan Tan": (28.4378, -11.1023),
-    "Boujdour": (26.1288, -14.4842),
-    "Dakhla": (23.7128, -15.9370),
-    "Zagora": (30.3324, -5.8384),
-    "Bouarfa": (32.0732, -1.9622),
-    "Figuig": (32.1089, -1.2269)
-
+    "Jorf Lasfar": (33.1069, -8.6375),
+    "Benguerir": (32.2359364, -7.953837799999974)
 }
 
-# Logical connections with default capacities
-connections = [
-   # PRIMARY PHOSPHATE NETWORK - Highest Priority Routes
-    ("Khouribga", "Jorf Lasfar", 400),    # Main phosphate slurry pipeline
-    ("Khouribga", "Casablanca", 350),     # Main industrial corridor
-    ("Khouribga", "Safi", 300),           # Secondary export route
-    ("Youssoufia", "Safi", 300),          # Direct port access
-    ("Benguerir", "Safi", 280),           # Port connection
-    ("Benguerir", "Marrakech", 250),      # Southern distribution
-    
-    # NORTHERN CORRIDOR - Atlantic Coast to Mediterranean
-    ("Casablanca", "Rabat", 300),         # Major highway route
-    ("Rabat", "Kenitra", 250),            # Coastal connection
-    ("Kenitra", "Tangier", 200),          # Northern route
-    ("Tangier", "Tetouan", 180),          # Mediterranean access
-    ("Tetouan", "Al Hoceima", 150),       # Rif mountains route
-    ("Al Hoceima", "Nador", 150),         # Eastern coast
-    ("Nador", "Oujda", 180),              # Eastern connection
-    
-    # CENTRAL NETWORK - Interior Connections
-    ("Casablanca", "El Jadida", 250),     # Southern coastal
-    ("El Jadida", "Jorf Lasfar", 200),    # Industrial zone
-    ("Jorf Lasfar", "Safi", 200),         # Coastal industry
-    ("Safi", "Essaouira", 180),           # Coastal route
-    ("Essaouira", "Agadir", 200),         # Major coastal
-    
-    # INTERIOR ROUTES - Cross-Country Connections
-    ("Khouribga", "Beni Mellal", 200),   # Interior access
-    ("Beni Mellal", "Fes", 180),          # Atlas route
-    ("Fes", "Meknes", 200),               # Imperial connection
-    ("Meknes", "Rabat", 180),             # Northern interior
-    ("Marrakech", "Beni Mellal", 170),    # Atlas crossing
-    
-    # EASTERN NETWORK
-    ("Fes", "Taza", 150),                 # Eastern corridor
-    ("Taza", "Oujda", 160),               # Eastern connection
-    ("Oujda", "Berkane", 140),            # Agricultural zone
-    
-    # SOUTHERN ROUTES
-    ("Marrakech", "Agadir", 220),         # Major southern
-    ("Agadir", "Tiznit", 150),            # Southern coastal
-    ("Tiznit", "Guelmim", 130),           # Pre-saharan
-    ("Guelmim", "Tan Tan", 100),          # Southern access
-    ("Tan Tan", "Laayoune", 120),         # Sahara route
-    ("Laayoune", "Boujdour", 90),         # Deep south
-    ("Boujdour", "Dakhla", 80),           # Southern terminal
-    
-    # ATLAS AND DESERT CONNECTIONS
-    ("Marrakech", "Ouarzazate", 150),     # Atlas crossing
-    ("Ouarzazate", "Errachidia", 130),    # Desert route
-    ("Ouarzazate", "Zagora", 120),        # Southern oasis
-    ("Errachidia", "Bouarfa", 110),       # Eastern desert
-    ("Bouarfa", "Figuig", 100),           # Eastern oasis
-    ("Bouarfa", "Oujda", 130),      # Atlas mountains route
+# Mines and industrial cities
+mines = ["Khouribga", "El Jadida", "Benguerir"]
+industrial_cities = [
+    "Casablanca", "Rabat", "Tangier", "Marrakech", "Fes", "Meknes", 
+    "Agadir", "Oujda", "Tetouan", "Safi", "El Jadida", "Beni Mellal", 
+    "Kenitra", "Jorf Lasfar", "Benguerir"
 ]
 
-# Create a graph with the connections
-city_graph = nx.Graph()
-for start, end, capacity in connections:
-    city_graph.add_edge(start, end, capacity=capacity)
+# Initial connections with their capacities
+connections = [
+   ("Khouribga", "Casablanca", 250),
+   ("Khouribga", "Rabat", 230),
+   ("Khouribga", "Tangier", 300),
+   ("Khouribga", "Marrakech", 400),
+   ("Khouribga", "Fes", 350),
+   ("Khouribga", "Agadir", 450),
+   ("Benguerir", "Casablanca", 180),
+   ("Benguerir", "Marrakech", 120),
+   ("Benguerir", "Kenitra", 230),
+   ("Jorf Lasfar", "Casablanca", 150),
+   ("Jorf Lasfar", "Safi", 100),
+   ("Casablanca", "Rabat", 60),
+   ("Casablanca", "Tangier", 90),
+   ("Casablanca", "Marrakech", 270),
+   ("Casablanca", "Fes", 150),
+   ("Casablanca", "Agadir", 320),
+   ("Casablanca", "Oujda", 600),
+   ("Casablanca", "Tetouan", 70),
+   ("Casablanca", "Safi", 250),
+   ("Casablanca", "El Jadida", 200),
+   ("Marrakech", "Fes", 130),
+   ("Marrakech", "Tetouan", 210),
+   ("Agadir", "Safi", 150),
+   ("Beni Mellal", "El Jadida", 180),
+]
 
+# Create the directed graph from connections
+def create_directed_graph(connections):
+    graph = {}
+    for start, end, capacity in connections:
+        if start not in graph:
+            graph[start] = {}
+        if end not in graph:
+            graph[end] = {}
+        graph[start][end] = capacity
+        graph[end][start] = capacity  # Add reverse capacity
+    return graph
+
+# Ford-Fulkerson algorithm for calculating maximum flow
+def ford_fulkerson(graph, source, sink):
+    def bfs(residual_graph, s, t, parent):
+        visited = {s}
+        queue = [s]
+        parent[s] = None
+        
+        while queue:
+            u = queue.pop(0)
+            for v in residual_graph[u]:
+                if v not in visited and residual_graph[u][v] > 0:
+                    queue.append(v)
+                    visited.add(v)
+                    parent[v] = u
+                    if v == t:
+                        return True
+        return False
+
+    # Initialize residual graph
+    residual = {u: {v: graph[u][v] for v in graph[u]} for u in graph}
+    
+    flow = {u: {v: 0 for v in graph[u]} for u in graph}
+    max_flow = 0
+    paths = []
+
+    while bfs(residual, source, sink, parent := {}):
+        path_flow = float('inf')
+        s = sink
+        path = [s]
+        
+        while s != source:
+            path_flow = min(path_flow, residual[parent[s]][s])
+            s = parent[s]
+            path.append(s)
+        
+        max_flow += path_flow
+        paths.append(list(reversed(path)))
+        
+        v = sink
+        while v != source:
+            u = parent[v]
+            flow[u][v] += path_flow
+            residual[u][v] -= path_flow
+            residual[v][u] += path_flow  # Add flow to reverse edge
+            v = parent[v]
+
+    return max_flow, flow, paths
+
+# Main route to handle form submission and display results
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
-        # Get source and destination from form
         source = request.form.get("source_city")
         destination = request.form.get("destination_city")
-        use_default = request.form.get("use_default") == "yes"
 
-        # Update capacities if user opts for manual input
-        if not use_default:
-            for start, end, _ in connections:
-                user_capacity = request.form.get(f"capacity_{start}_{end}")
-                if user_capacity:
-                    city_graph[start][end]["capacity"] = int(user_capacity)
+        # Ensure that the selected source is a valid mine and destination is an industrial city
+        if source not in mines:
+            return "Invalid source city selected. Please select a mine as the source city."
+        if destination not in industrial_cities:
+            return "Invalid destination city selected. Please select an industrial city."
 
-        # Find the optimal path
-        try:
-            path = nx.shortest_path(city_graph, source=source, target=destination, weight="capacity")
-            total_capacity = sum(city_graph[path[i]][path[i + 1]]['capacity'] for i in range(len(path) - 1))
-            message = f"Optimal path from {source} to {destination}: {' -> '.join(path)} with total capacity of {total_capacity} units."
-        except nx.NetworkXNoPath:
-            path = None
-            message = f"No path exists between {source} and {destination}."
+        # Create the graph and calculate the Ford-Fulkerson flow
+        graph = create_directed_graph(connections)
+        max_flow, flow_dict, paths = ford_fulkerson(graph, source, destination)
 
-        # Generate the map with Folium
-        pipeline_map = folium.Map(location=[31.5, -6.5], zoom_start=6)
+        message = f"Maximum flow from {source} to {destination}: {max_flow} units\n\nPaths used:\n"
+        message += "\n".join([" -> ".join(path) for path in paths])
 
-        # Add city markers on the map
+        # Create map with flow visualization
+        map = folium.Map(location=[31.5, -6.5], zoom_start=6)
+
         for city, coord in city_coordinates.items():
-            folium.Marker(coord, popup=city).add_to(pipeline_map)
+            folium.Marker(coord, popup=city).add_to(map)
 
-        # Add all connections in grey
+        colors = ['red', 'blue', 'green', 'purple', 'orange']
+        
+        # Draw connections between cities on the map
         for start, end, _ in connections:
-            start_coord = city_coordinates[start]
-            end_coord = city_coordinates[end]
-            folium.PolyLine([start_coord, end_coord], color="grey", weight=2.5).add_to(pipeline_map)
+            if start in city_coordinates and end in city_coordinates:
+                folium.PolyLine([city_coordinates[start], city_coordinates[end]], color="grey", weight=2).add_to(map)
 
-        # Highlight the optimal path in red
-        if path:
-            for i in range(len(path) - 1):
-                start_coord = city_coordinates[path[i]]
-                end_coord = city_coordinates[path[i + 1]]
-                folium.PolyLine([start_coord, end_coord], color="red", weight=5).add_to(pipeline_map)
+        # Highlight paths used with flow visualization
+        for i, path in enumerate(paths):
+            color = colors[i % len(colors)]
+            for j in range(len(path) - 1):
+                start, end = path[j], path[j + 1]
+                if start in city_coordinates and end in city_coordinates:
+                    flow_value = flow_dict[start][end]
+                    folium.PolyLine([city_coordinates[start], city_coordinates[end]], color=color, weight=2 + (flow_value / 50), popup=f"Flow: {flow_value}").add_to(map)
 
-        # Save the map as an HTML file (this will be displayed inline)
-        map_html = "templates/map.html"
-        pipeline_map.save(map_html)
+        # Save map
+        map.save("templates/map.html")
 
-        # Generate the graph image (Matplotlib)
-        graph_image_path = "static/graph.png"
+        # Generate graph image using NetworkX
+        G = nx.DiGraph(graph)
         plt.figure(figsize=(14, 10))
-        pos = nx.spring_layout(city_graph)
-        nx.draw(city_graph, pos, with_labels=True, node_color='skyblue', node_size=3000, font_size=10, font_weight='bold', edge_color='gray')
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, font_size=10, font_weight='bold', edge_color='gray', arrows=True)
 
-        # Highlight the optimal path on the graph
-        if path:
-            path_edges = list(zip(path, path[1:]))
-            nx.draw_networkx_edges(city_graph, pos, edgelist=path_edges, edge_color='red', width=3)
+        # Add edge labels to graph
+        edge_labels = {}
+        for start in flow_dict:
+            for end in flow_dict[start]:
+                if flow_dict[start][end] > 0:
+                    edge_labels[(start, end)] = f"{flow_dict[start][end]}/{graph[start][end]}"
 
-        # Annotate the edges with their capacities
-        edge_labels = nx.get_edge_attributes(city_graph, 'capacity')
-        nx.draw_networkx_edge_labels(city_graph, pos, edge_labels=edge_labels, font_size=8)
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
 
-        # Save the graph image
-        plt.savefig(graph_image_path)
+        # Highlight paths used with different colors
+        for i, path in enumerate(paths):
+            color = colors[i % len(colors)]
+            path_edges = list(zip(path[:-1], path[1:]))
+            nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color=color, width=3, arrows=True)
+
+        # Save graph image
+        plt.savefig("static/graph.png", bbox_inches='tight', dpi=300)
         plt.close()
 
-        return render_template("result.html", message=message, map_html=map_html, graph_image_path=graph_image_path)
+        return render_template("result.html", message=message, graph_image_path="graph.png")
 
-    return render_template("index.html", cities=list(city_coordinates.keys()), connections=connections)
-
-@app.route("/map")
-def display_map():
-    return render_template("map.html")
+    return render_template("index.html", cities=list(city_coordinates.keys()), connections=connections, mines=mines, industrial_cities=industrial_cities)
 
 if __name__ == "__main__":
     app.run(debug=True)

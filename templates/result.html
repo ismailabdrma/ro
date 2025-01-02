@@ -1,16 +1,62 @@
+<!-- templates/result.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result</title>
+    <title>Pipeline Optimization Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .results {
+            white-space: pre-line;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .visualization {
+            margin: 20px 0;
+        }
+        .map-container {
+            height: 600px;
+            margin: 20px 0;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
 </head>
 <body>
+    <h1>Pipeline Optimization Results</h1>
     
-    <h1>Pipeline Optimization Result</h1>
-    <p>{{ message }}</p>
-    <a href="/map" target="_blank">View Map with Optimal Path</a>
-    <h2>Graph Representation</h2>
-    <img src="{{ graph_image_path }}" alt="Graph representing cities and pipelines" width="100%" />
+    <div class="results">
+        {{ message }}
+    </div>
+
+    <div class="visualization">
+        <h2>Network Map</h2>
+        <div class="map-container">
+            {% include "map.html" %}
+        </div>
+    </div>
+
+    <div class="visualization">
+        <h2>Network Graph</h2>
+        <img src="{{ url_for('static', filename=graph_image_path) }}" alt="Network Graph">
+    </div>
+
+    <a href="/" class="button">Calculate New Route</a>
 </body>
 </html>
