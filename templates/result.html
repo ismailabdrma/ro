@@ -5,14 +5,125 @@
     <style>
         .container {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1.2fr 1fr;  /* Adjusted ratio */
             gap: 20px;
             padding: 20px;
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 0 auto;
             height: calc(100vh - 40px);
         }
 
+        /* Make the map legend smaller and positioned better */
+        .leaflet-control-container .leaflet-top.leaflet-left {
+            max-width: 250px;  /* Limit width of legend */
+        }
+
+        .leaflet-popup-content {
+            font-size: 8px !important;
+            margin: 3px !important;
+            line-height: 1 !important;
+            max-width: 150px !important;
+        }
+
+        .leaflet-popup-content-wrapper {
+            padding: 1px !important;
+        }
+
+        /* Position the legend in the bottom-right corner */
+        .leaflet-bottom.leaflet-left {
+            bottom: 10px !important;
+            left: 10px !important;
+        }
+
+        .legend {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 4px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 7px;
+            max-width: 150px;
+            position: absolute;
+            bottom: 20px;
+            right: 10px;  /* Changed to right corner */
+            z-index: 1000;
+        }
+
+        .legend h4 {
+            margin: 1px 0;
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        .legend-item {
+            margin: 1px 0;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1;
+            font-size: 7px;
+        }
+
+        .legend-color {
+            width: 8px;
+            height: 2px;
+            margin-right: 3px;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Create a collapsible legend */
+        .legend-toggle {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            cursor: pointer;
+            font-size: 8px;
+            color: #666;
+        }
+
+        .legend-content {
+            max-height: 120px;  /* Limit height */
+            overflow-y: auto;   /* Add scroll if needed */
+        }
+
+        /* Custom scrollbar for legend */
+        .legend-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .legend-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .legend-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 2px;
+        }
+        /* Improve graph section */
+        .graph-section {
+            margin-top: 15px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 500px;  /* Fixed height */
+        }
+
+        .graph-container {
+            height: calc(100% - 30px);  /* Subtract header height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .graph-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Rest of the styles remain the same */
         .map-section {
             display: flex;
             flex-direction: column;
@@ -22,6 +133,14 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             height: 100%;
             overflow: hidden;
+        }
+
+        .network-map {
+            width: 100%;
+            flex-grow: 1;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            min-height: 600px;  /* Increased map height */
         }
 
         .details-section {
@@ -35,121 +154,19 @@
             overflow-y: auto;
         }
 
-        .network-map {
-            width: 100%;
-            flex-grow: 1;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            min-height: 400px;
-        }
-
-        .legend {
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-            margin-top: auto;
-        }
-
-        .legend-item {
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
-            font-size: 0.9em;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 3px;
-            margin-right: 8px;
-            display: inline-block;
-        }
-
-        .flow-details {
-            margin-bottom: 20px;
-        }
-
-        .max-flow {
-            font-size: 24px;
-            color: #2196F3;
-            margin: 10px 0;
-        }
-
-        .path-list {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0;
-        }
-
-        .path-item {
-            padding: 8px;
-            margin: 5px 0;
-            background: #f5f5f5;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        .graph-section {
-            margin-top: 20px;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .graph-title {
-            padding: 10px;
-            background: #f5f5f5;
-            border-bottom: 1px solid #e0e0e0;
-            font-weight: 600;
-        }
-
-        .graph-container {
-            padding: 10px;
-        }
-
-        .graph-container img {
-            width: 100%;
-            height: auto;
-            border-radius: 4px;
-        }
-
-        .calculate-btn {
-            width: 100%;
-            padding: 12px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .calculate-btn:hover {
-            background: #1976D2;
-        }
-
-        h2 {
-            margin: 0 0 15px 0;
-            color: #333;
-        }
-
-        h3 {
-            margin: 10px 0;
-            color: #444;
-        }
-
+        /* Responsive adjustments */
         @media (max-width: 1024px) {
             .container {
                 grid-template-columns: 1fr;
                 height: auto;
             }
 
-            .map-section, .details-section {
-                height: auto;
-            }
-
             .network-map {
                 height: 500px;
+            }
+
+            .graph-section {
+                height: 400px;
             }
         }
     </style>
@@ -160,29 +177,6 @@
             <h2>Network Map</h2>
             <div class="network-map">
                 {{ map|safe }}
-            </div>
-            <div class="legend">
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #FF0000;"></span>
-                    Path 1: {{ paths[0]|join(" → ") }}
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #00FF00;"></span>
-                    Path 2: {{ paths[1]|join(" → ") }}
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #0000FF;"></span>
-                    Path 3: {{ paths[2]|join(" → ") }}
-                </div>
-                <div class="legend-item">
-                    <span style="color: red;">●</span> Source/Mine
-                </div>
-                <div class="legend-item">
-                    <span style="color: green;">●</span> Destination
-                </div>
-                <div class="legend-item">
-                    <span style="color: blue;">●</span> Industrial City
-                </div>
             </div>
         </div>
         

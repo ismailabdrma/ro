@@ -67,6 +67,21 @@ connections = [
     ("Marrakech", "Tetouan", 210),
     ("Agadir", "Safi", 150),
     ("Beni Mellal", "El Jadida", 180),
+    ("Rabat", "Kenitra", 50),
+    ("Kenitra", "Tangier", 200),
+    ("Rabat", "Meknes", 150),
+    ("Meknes", "Fes", 60),
+    ("Fes", "Oujda", 300),
+    ("Tetouan", "Tangier", 60),
+    ("Beni Mellal", "Marrakech", 200),
+    ("Beni Mellal", "Fes", 250),
+    ("Benguerir", "Beni Mellal", 180),
+    ("Safi", "Marrakech", 160),
+    ("El Jadida", "Rabat", 140),
+    ("Meknes", "Kenitra", 140),
+    ("Oujda", "Meknes", 280),
+    ("Agadir", "Benguerir", 300),
+    ("Jorf Lasfar", "Benguerir", 120)
 ]
 
 def create_directed_graph(connections):
@@ -164,26 +179,44 @@ def create_land_route(start_coord, end_coord, cities_on_path):
     return final_route
 
 def create_flow_map(paths, flow_dict, graph, source, destination):
-    """Create an improved map visualization with clear path colors and land routes."""
+    """Create an improved map visualization with all connections shown in grey."""
     map = folium.Map(location=[31.5, -6.5], zoom_start=6, tiles='CartoDB positron')
     
-    # Define consistent colors for paths
+    # First, draw all connections in grey
+    for start, end, _ in connections:
+        route = create_land_route(
+            city_coordinates[start],
+            city_coordinates[end],
+            [start, end]
+        )
+        
+        # Add grey connection line
+        folium.PolyLine(
+            route,
+            color='grey',
+            weight=2,
+            opacity=0.4
+        ).add_to(map)
+    
+    # Define consistent colors for active paths
     colors = ['#FF0000', '#00FF00', '#0000FF', '#FFA500', '#800080']
     
-    # Create a legend for paths
+    # Create a legend
     legend_html = f"""
-    <div style="position: fixed; 
-                bottom: 50px; 
-                left: 50px; 
-                z-index: 1000; 
-                background-color: white;
-                padding: 10px; 
-                border: 2px solid grey; 
-                border-radius: 5px;">
+    <div style=" background: rgba(255, 255, 255, 0.95);
+            padding: 4px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 7px;
+            max-width: 150px;
+            position: absolute;
+            bottom: 20px;
+            right: 10px;  /* Changed to right corner */
+            z-index: 1000;">
         <h4>Maximum flow from {source} to {destination}</h4>
     """
     
-    # Draw paths first (so they appear under the markers)
+    # Draw active paths over the grey connections
     for i, path in enumerate(paths):
         color = colors[i % len(colors)]
         
@@ -195,7 +228,6 @@ def create_flow_map(paths, flow_dict, graph, source, destination):
         </div>
         """
         
-        # Create the route through all cities in the path
         route = create_land_route(
             city_coordinates[path[0]],
             city_coordinates[path[-1]],
@@ -209,7 +241,6 @@ def create_flow_map(paths, flow_dict, graph, source, destination):
                 path_flows.append(flow_dict[path[j]][path[j+1]])
         flow_value = min(path_flows) if path_flows else 0
         
-        # Create detailed popup
         popup_html = f"""
         <div style="font-family: Arial; font-size: 12px;">
             <b>Path {i + 1}:</b><br>
@@ -218,7 +249,6 @@ def create_flow_map(paths, flow_dict, graph, source, destination):
         </div>
         """
         
-        # Add the path to the map
         folium.PolyLine(
             route,
             color=color,
@@ -227,7 +257,7 @@ def create_flow_map(paths, flow_dict, graph, source, destination):
             popup=folium.Popup(popup_html, max_width=300)
         ).add_to(map)
     
-    # Add markers for cities
+    # Add city markers
     for city, coord in city_coordinates.items():
         if city == source:
             icon = folium.Icon(color='red', icon='info-sign')
@@ -258,6 +288,7 @@ def create_flow_map(paths, flow_dict, graph, source, destination):
             <p>🔴 Source/Mine</p>
             <p>🟢 Destination</p>
             <p>🔵 Industrial City</p>
+            <p style="color: grey;">━━━ Available Connection</p>
         </div>
     </div>
     """
